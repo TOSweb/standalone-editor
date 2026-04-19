@@ -1,5 +1,7 @@
 # 🚀 Visual Dev Editor (Standalone)
 
+> **⚠️ NON - COMMERCIAL USE ONLY:** This is an open-source project intended for the developer community. It is free to use, but the software itself (or any modified version) **cannot be sold commercially**.
+
 A lightweight, zero-dependency visual HTML editor designed for **Local Development**. It allows you to "wrap" any HTML project with a visual interface to rapidly edit text, images, and links without digging into the code.
 
 ## 🎯 Primary Use Cases
@@ -74,5 +76,7 @@ You can customize the editor's behavior by adding this config before the script 
 - **No Direct Server Writes:** For security, the editor does not directly modify files on your server. It provides you with clean code to save manually.
 - **Cleanup:** Always remove the `<script>` tag before deploying your project to a live production environment.
 
-## 📜 License
-MIT License. Free for personal and commercial use in local development.
+## 📜 License & Usage
+This project is Open Source and provided for free. You are free to use, modify, and distribute it.
+
+**Strictly Prohibited:** You may **NOT** sell this software, its source code, or any modified versions of it commercially. It must remain free for everyone.
