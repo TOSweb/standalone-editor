@@ -1,0 +1,1117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Dev Editor (Standalone)</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        :root {
+            /* Design System Tokens */
+            --color-primary: #F15A2D;
+            --color-secondary: #1A2540;
+            --color-bg-primary: #0A0F1E;
+            --color-bg-surface: #111827;
+            --color-bg-card: rgba(255, 255, 255, 0.05);
+            --color-text-primary: #FFFFFF;
+            --color-text-muted: #94A3B8;
+            --color-text-subtle: #4B5563;
+            --color-border: #262D3D;
+            --color-border-subtle: #1F2937;
+            
+            --font-heading: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains+Mono', monospace;
+
+            --radius-sm: 6px;
+            --radius-md: 12px;
+            --radius-lg: 20px;
+            
+            --space-4: 4px;
+            --space-8: 8px;
+            --space-12: 12px;
+            --space-16: 16px;
+            --space-24: 24px;
+            --space-32: 32px;
+            
+            --shadow-sm: 0 1px 4px rgba(0,0,0,0.2);
+            --shadow-md: 0 4px 16px rgba(0,0,0,0.3);
+            --shadow-lg: 0 8px 40px rgba(0,0,0,0.4);
+            
+            --transition: all 0.2s ease;
+        }
+
+        body, html { 
+            margin: 0; 
+            padding: 0; 
+            height: 100%; 
+            font-family: var(--font-body); 
+            background: var(--color-bg-primary); 
+            color: var(--color-text-primary); 
+            overflow: hidden; 
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- UTILITIES --- */
+        .hidden { display: none !important; }
+        .flex { display: flex; }
+        .flex-col { flex-direction: column; }
+        .items-center { align-items: center; }
+        .justify-between { justify-content: space-between; }
+        .gap-8 { gap: var(--space-8); }
+        .gap-12 { gap: var(--space-12); }
+        .p-24 { padding: var(--space-24); }
+
+        /* --- SCREEN 1: PASTE --- */
+        #paste-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            padding: var(--space-32);
+            background: radial-gradient(circle at top right, #1a1a2e, var(--color-bg-primary));
+        }
+
+        .paste-container {
+            width: 100%;
+            max-width: 800px;
+            background: var(--color-bg-surface);
+            padding: var(--space-32);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--color-border);
+            box-shadow: var(--shadow-lg);
+            text-align: center;
+        }
+
+        .paste-container h1 {
+            font-family: var(--font-heading);
+            font-size: 2.5rem;
+            margin-bottom: var(--space-8);
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, var(--color-primary), #FF8A65);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .paste-container p {
+            color: var(--color-text-muted);
+            margin-bottom: var(--space-24);
+        }
+
+        #paste-area {
+            width: 100%;
+            height: 300px;
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: var(--space-16);
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            margin-bottom: var(--space-24);
+            outline: none;
+            resize: none;
+            transition: var(--transition);
+        }
+
+        #paste-area:focus {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 2px rgba(241, 90, 45, 0.2);
+        }
+
+        .btn-large {
+            padding: 16px 40px;
+            font-size: 1.1rem;
+            background: var(--color-primary);
+            color: white;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .btn-large:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px var(--color-primary);
+            filter: brightness(1.1);
+        }
+
+        /* --- SCREEN 2: EDITOR --- */
+        #editor-screen {
+            display: none;
+            height: 100vh;
+        }
+
+        .layout { display: flex; height: 100%; }
+
+        .sidebar {
+            width: 320px;
+            background: var(--color-bg-surface);
+            border-right: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+
+        .sidebar-header {
+            padding: var(--space-24);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .sidebar-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: var(--space-24);
+        }
+
+        .sidebar-footer {
+            padding: var(--space-24);
+            border-top: 1px solid var(--color-border);
+            background: rgba(0,0,0,0.2);
+        }
+
+        .preview-pane { 
+            flex-grow: 1; 
+            background: #1e1e2e; 
+            position: relative; 
+            padding: var(--space-24);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .iframe-container {
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+        }
+
+        iframe { width: 100%; height: 100%; border: none; }
+
+        .tree-sidebar {
+            width: 300px;
+            background: var(--color-bg-surface);
+            border-left: 1px solid var(--color-border);
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        h2 { 
+            font-size: 1.25rem; 
+            margin: 0; 
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+
+        h3 { 
+            font-size: 0.75rem; 
+            margin-bottom: var(--space-16); 
+            color: var(--color-text-muted); 
+            text-transform: uppercase; 
+            letter-spacing: 0.1em;
+            font-weight: 600;
+        }
+
+        /* --- TREE STYLES --- */
+        .tree-container { 
+            font-size: 0.85rem; 
+            font-family: var(--font-body);
+            padding: var(--space-16);
+            overflow-y: auto;
+        }
+        .tree-item { 
+            padding: 6px 10px; 
+            cursor: pointer; 
+            border-radius: var(--radius-sm); 
+            white-space: nowrap; 
+            overflow: hidden; 
+            text-overflow: ellipsis;
+            color: var(--color-text-muted);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+        }
+        .tree-item:hover { 
+            background: var(--color-bg-card); 
+            color: var(--color-text-primary); 
+        }
+        .tree-item.active { 
+            background: rgba(241, 90, 45, 0.1); 
+            color: var(--color-primary); 
+            font-weight: 500;
+        }
+        .tree-children { 
+            margin-left: 18px; 
+            border-left: 1px solid var(--color-border-subtle); 
+        }
+        .tree-tag { 
+            color: var(--color-text-subtle); 
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+        .active .tree-tag { color: var(--color-primary); }
+        
+        .tree-class { 
+            color: #60A5FA; 
+            font-size: 0.75rem; 
+            opacity: 0.8;
+        }
+
+        /* --- FORM CONTROLS --- */
+        .field { margin-bottom: var(--space-24); }
+
+        label { 
+            display: block; 
+            font-size: 0.75rem; 
+            color: var(--color-text-muted); 
+            margin-bottom: var(--space-8); 
+            text-transform: uppercase; 
+            letter-spacing: 0.05em;
+            font-weight: 600;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            background: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            color: var(--color-text-primary);
+            border-radius: var(--radius-sm);
+            box-sizing: border-box;
+            font-family: var(--font-body);
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 1px var(--color-primary);
+        }
+
+        .actions { display: flex; flex-direction: column; gap: var(--space-12); }
+
+        .btn { 
+            padding: 12px 16px; 
+            border: none; 
+            border-radius: var(--radius-sm); 
+            cursor: pointer; 
+            font-weight: 600; 
+            font-size: 0.9rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: var(--transition);
+            text-align: center;
+        }
+
+        .btn-primary { background: var(--color-primary); color: white; }
+        .btn-secondary { background: var(--color-bg-card); color: var(--color-text-primary); border: 1px solid var(--color-border); }
+        .btn-danger { background: rgba(239, 68, 68, 0.1); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.2); }
+        .btn-danger:hover { background: #EF4444; color: white; }
+
+        .btn:hover:not(.btn-danger) { filter: brightness(1.2); transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+
+        #selection-info { 
+            font-size: 0.8rem; 
+            background: var(--color-bg-card); 
+            padding: var(--space-12); 
+            border-radius: var(--radius-md); 
+            margin-bottom: var(--space-24); 
+            border: 1px solid var(--color-border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        #selection-info b { color: var(--color-primary); font-family: var(--font-mono); }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: var(--space-32) 0;
+            color: var(--color-text-muted);
+            opacity: 0.8;
+        }
+        
+        .empty-state i { margin-bottom: var(--space-16); opacity: 0.5; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--color-text-subtle); }
+
+        /* Floating Toolbar */
+        #floating-toolbar {
+            position: fixed;
+            background: var(--color-bg-surface);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-md);
+            padding: 6px;
+            display: flex;
+            gap: 4px;
+            box-shadow: var(--shadow-lg);
+            z-index: 9999;
+            transform: translateX(-50%);
+            pointer-events: auto;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        
+        #floating-toolbar button {
+            background: transparent;
+            border: none;
+            color: var(--color-text-primary);
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            transition: var(--transition);
+        }
+        
+        #floating-toolbar button:hover {
+            background: var(--color-bg-card);
+            color: var(--color-primary);
+        }
+
+        #floating-toolbar.hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateX(-50%) translateY(10px);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Floating Toolbar -->
+    <div id="floating-toolbar" class="hidden">
+        <button onclick="applyFormat('bold')" title="Bold (Ctrl+B)">
+            <i data-lucide="bold" size="16"></i>
+        </button>
+        <button onclick="applyFormat('italic')" title="Italic (Ctrl+I)">
+            <i data-lucide="italic" size="16"></i>
+        </button>
+        <div style="width: 1px; background: var(--color-border); margin: 4px 2px;"></div>
+        <button onclick="applyFormat('underline')" title="Underline (Ctrl+U)">
+            <i data-lucide="underline" size="16"></i>
+        </button>
+    </div>
+
+    <!-- SCREEN 1: PASTE HTML -->
+    <div id="paste-screen">
+        <div class="paste-container">
+            <h1>Visual Dev Editor</h1>
+            <p>Paste your HTML and optional CSS or external asset links below.</p>
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; text-align: left; margin-bottom: 24px;">
+                <div>
+                    <label>HTML Content</label>
+                    <textarea id="paste-area" style="height: 350px; margin-bottom: 0;" placeholder="<!-- Paste your HTML here -->
+<section class='hero'>
+  <h1>Hello World</h1>
+</section>"></textarea>
+                </div>
+                <div>
+                    <label>CSS / External Links</label>
+                    <textarea id="paste-css" style="height: 350px; font-size: 0.8rem;" placeholder="/* Custom CSS */
+.hero { background: #f0f0f0; }
+
+<!-- Or External Links -->
+<link href='https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css' rel='stylesheet'>"></textarea>
+                </div>
+            </div>
+
+            <button class="btn-large" onclick="loadHTML()">
+                <i data-lucide="play" size="20"></i>
+                Start Editing
+            </button>
+        </div>
+    </div>
+
+    <!-- SCREEN 2: THE EDITOR -->
+    <div id="editor-screen">
+        <div class="layout">
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <h2>Editor</h2>
+                </div>
+                
+                <div class="sidebar-content">
+                    <div id="no-selection" class="empty-state">
+                        <i data-lucide="mouse-pointer-2" size="48"></i>
+                        <p style="font-size: 0.9em;">Click on any element in the preview to edit it.</p>
+                    </div>
+
+                    <div id="controls" class="hidden">
+                        <div id="selection-info">
+                            <i data-lucide="tag" size="14"></i>
+                            <span>Selected: <b id="tag-name">---</b></span>
+                        </div>
+
+                        <div class="field" id="field-text">
+                            <label>Content / Text</label>
+                            <textarea id="input-text" rows="4"></textarea>
+                        </div>
+
+                        <div class="field hidden" id="field-href">
+                            <label>Link (href)</label>
+                            <input type="text" id="input-href" placeholder="https://...">
+                        </div>
+
+                        <div class="field hidden" id="field-src">
+                            <label>Image URL (src)</label>
+                            <input type="text" id="input-src" placeholder="path/to/image.jpg">
+                        </div>
+
+                        <div style="margin-top: 32px; border-top: 1px solid var(--color-border); padding-top: 24px;">
+                            <label>Quick Actions</label>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+                                <button class="btn btn-secondary" onclick="duplicateElement()" title="Duplicate">
+                                    <i data-lucide="copy" size="16"></i> Duplicate
+                                </button>
+                                <button class="btn btn-secondary" id="btn-wrap" onclick="wrapWithLink()" title="Wrap in Link">
+                                    <i data-lucide="link" size="16"></i> Wrap
+                                </button>
+                                <button class="btn btn-danger" style="grid-column: span 2;" onclick="deleteElement()">
+                                    <i data-lucide="trash-2" size="16"></i> Delete Element
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="sidebar-footer">
+                    <div class="actions">
+                        <button class="btn btn-primary" onclick="saveToParent()">
+                            <i data-lucide="refresh-ccw" size="18"></i> Sync to Local Page
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportHTML()">
+                            <i data-lucide="download" size="18"></i> Export Clean HTML
+                        </button>
+                        <div style="display: flex; gap: 8px;">
+                            <button id="btn-copy" class="btn btn-secondary" style="flex: 1;" onclick="copyHTML()">
+                                <i data-lucide="clipboard" size="16"></i> Copy Code
+                            </button>
+                            <button class="btn btn-danger" style="background: transparent; border-color: transparent;" onclick="location.reload()">
+                                <i data-lucide="refresh-cw" size="16"></i> Reset
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="preview-pane">
+                <div class="iframe-container">
+                    <iframe id="preview-iframe"></iframe>
+                </div>
+            </div>
+
+            <div class="tree-sidebar">
+                <div class="sidebar-header" style="padding: 0; display: flex; border-bottom: 1px solid var(--color-border);">
+                    <button id="tab-tree" class="tab-btn active" onclick="switchTab('tree')">Tree</button>
+                    <button id="tab-assets" class="tab-btn" onclick="switchTab('assets')">Assets</button>
+                </div>
+                <div id="tree-root" class="tree-container"></div>
+                <div id="assets-root" class="tree-container hidden">
+                    <div id="assets-list" style="display: flex; flex-direction: column; gap: 12px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            background: transparent;
+            border: none;
+            color: var(--color-text-muted);
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            transition: var(--transition);
+            border-bottom: 2px solid transparent;
+        }
+        .tab-btn:hover { color: var(--color-text-primary); }
+        .tab-btn.active { 
+            color: var(--color-primary); 
+            border-bottom-color: var(--color-primary);
+            background: rgba(241, 90, 45, 0.05);
+        }
+
+        .tree-item-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            border-radius: var(--radius-sm);
+            padding: 4px 8px;
+            transition: var(--transition);
+        }
+        .tree-item-row:hover { background: var(--color-bg-card); }
+        .tree-item-row.active { background: rgba(241, 90, 45, 0.1); color: var(--color-primary); }
+
+        .toggle-icon {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-subtle);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .toggle-icon.expanded { transform: rotate(90deg); }
+        
+        .asset-card {
+            background: var(--color-bg-primary);
+            border: 1px solid var(--color-border);
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .asset-card-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.7rem;
+            color: var(--color-text-muted);
+            text-transform: uppercase;
+            font-weight: 700;
+        }
+        .asset-preview {
+            width: 100%;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            background: #000;
+        }
+        .asset-input {
+            font-size: 0.75rem !important;
+            padding: 6px 8px !important;
+        }
+    </style>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        const pasteScreen = document.getElementById('paste-screen');
+        const editorScreen = document.getElementById('editor-screen');
+        const pasteArea = document.getElementById('paste-area');
+        const pasteCSS = document.getElementById('paste-css');
+        const iframe = document.getElementById('preview-iframe');
+
+        const controls = document.getElementById('controls');
+        const noSelection = document.getElementById('no-selection');
+        const tagNameDisp = document.getElementById('tag-name');
+        const treeRoot = document.getElementById('tree-root');
+        const assetsRoot = document.getElementById('assets-root');
+        const assetsList = document.getElementById('assets-list');
+
+        const inputText = document.getElementById('input-text');
+        const inputHref = document.getElementById('input-href');
+        const inputSrc = document.getElementById('input-src');
+
+        const fieldText = document.getElementById('field-text');
+        const fieldHref = document.getElementById('field-href');
+        const fieldSrc = document.getElementById('field-src');
+
+        const toolbar = document.getElementById('floating-toolbar');
+        let selectedEl = null;
+
+        // --- AUTO LOAD FROM URL OR MESSAGE ---
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const loadUrl = urlParams.get('load');
+            if (loadUrl) {
+                fetch(loadUrl)
+                    .then(res => res.text())
+                    .then(html => {
+                        pasteArea.value = html;
+                        loadHTML();
+                    })
+                    .catch(err => console.error("Failed to auto-load file:", err));
+            }
+        });
+
+        // Listen for content from parent window (Embed Script)
+        window.addEventListener('message', (event) => {
+            if (event.data.type === 'INITIAL_LOAD') {
+                pasteArea.value = event.data.html;
+                loadHTML();
+            }
+        });
+
+        function saveToParent() {
+            const finalHTML = getCleanHTML();
+            
+            // 1. Send to parent window if embedded in iframe
+            if (window.parent !== window) {
+                window.parent.postMessage({
+                    type: 'SAVE_HTML',
+                    html: finalHTML,
+                    timestamp: new Date().toISOString()
+                }, '*');
+            }
+            
+            // 2. Visual feedback on button
+            const saveBtn = event.currentTarget;
+            const oldContent = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i data-lucide="check" size="18"></i> Saved!';
+            saveBtn.style.background = "#22C55E";
+            lucide.createIcons({ root: saveBtn });
+            
+            setTimeout(() => {
+                saveBtn.innerHTML = oldContent;
+                saveBtn.style.background = "var(--color-primary)";
+                lucide.createIcons({ root: saveBtn });
+            }, 2000);
+        }
+
+        function loadHTML() {
+            const rawHTML = pasteArea.value.trim();
+            const rawCSS = pasteCSS.value.trim();
+            if (!rawHTML) return alert("Please paste some HTML first!");
+
+            // Switch screens
+            pasteScreen.style.display = 'none';
+            editorScreen.style.display = 'block';
+
+            // Inject into iframe
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            doc.open();
+            
+            // Construct the full document
+            let fullDoc = `<!DOCTYPE html><html><head><meta charset="UTF-8">`;
+            
+            // Add custom CSS/Assets
+            if (rawCSS) {
+                if (rawCSS.includes('<link') || rawCSS.includes('<style')) {
+                    fullDoc += rawCSS;
+                } else {
+                    fullDoc += `<style>${rawCSS}</style>`;
+                }
+            }
+            
+            fullDoc += `</head><body>${rawHTML}</body></html>`;
+            
+            doc.write(fullDoc);
+            doc.close();
+
+            // Inject highlight styles
+            const style = doc.createElement('style');
+            style.id = 'editor-internal-styles';
+            style.textContent = `
+                .editor-active-selection {
+                    outline: 3px solid #F15A2D !important;
+                    outline-offset: 2px !important;
+                    cursor: pointer !important;
+                }
+                [contenteditable="true"] {
+                    outline: 2px dashed #F15A2D !important;
+                    outline-offset: 4px !important;
+                    background: rgba(241, 90, 45, 0.05) !important;
+                    cursor: text !important;
+                }
+                * { transition: outline 0.1s ease-in-out; }
+                body { min-height: 100vh; }
+            `;
+            doc.head.appendChild(style);
+
+            // Selection change handler for floating toolbar
+            doc.addEventListener('selectionchange', () => {
+                const selection = doc.getSelection();
+                if (selection.rangeCount > 0 && !selection.isCollapsed && selection.toString().trim() !== '') {
+                    const range = selection.getRangeAt(0);
+                    const rect = range.getBoundingClientRect();
+                    const iframeRect = iframe.getBoundingClientRect();
+                    
+                    toolbar.style.left = `${iframeRect.left + rect.left + rect.width / 2}px`;
+                    toolbar.style.top = `${iframeRect.top + rect.top - 50}px`;
+                    toolbar.classList.remove('hidden');
+                } else {
+                    toolbar.classList.add('hidden');
+                }
+            });
+
+            // Add click listener
+            doc.addEventListener('click', (e) => {
+                const target = e.target.closest('*'); 
+                if (target && target !== doc.documentElement && target !== doc.body && target !== doc.head) {
+                    // Allow clicking inside contenteditable elements
+                    if (target.contentEditable === 'true') return;
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleSelection(target);
+                }
+            }, true);
+
+            // Add double click listener for inline editing
+            doc.addEventListener('dblclick', (e) => {
+                const target = e.target.closest('*');
+                if (target && target !== doc.documentElement && target !== doc.body && target !== doc.head) {
+                    const tag = target.tagName.toLowerCase();
+                    // Don't make media or structural containers editable if they're empty
+                    if (tag !== 'img' && tag !== 'svg' && tag !== 'canvas' && tag !== 'video') {
+                        e.preventDefault();
+                        target.contentEditable = 'true';
+                        target.focus();
+
+                        // Handle key events while editing
+                        const onKeyDown = (ke) => {
+                            // Finish with Enter (but Shift+Enter for newline)
+                            if (ke.key === 'Enter' && !ke.shiftKey) {
+                                ke.preventDefault();
+                                target.blur();
+                            }
+                            // Select all text inside this element only on Ctrl+A / Cmd+A
+                            if ((ke.ctrlKey || ke.metaKey) && (ke.key === 'a' || ke.key === 'A')) {
+                                ke.preventDefault();
+                                const range = doc.createRange();
+                                range.selectNodeContents(target);
+                                const selection = iframe.contentWindow.getSelection();
+                                selection.removeAllRanges();
+                                selection.addRange(range);
+                            }
+                        };
+                        target.addEventListener('keydown', onKeyDown);
+
+                        // Sync back to sidebar on blur
+                        const onBlur = () => {
+                            target.contentEditable = 'false';
+                            if (selectedEl === target) {
+                                inputText.value = target.innerText || target.textContent;
+                            }
+                            target.removeEventListener('blur', onBlur);
+                            target.removeEventListener('keydown', onKeyDown);
+                        };
+                        target.addEventListener('blur', onBlur);
+                    }
+                }
+            }, true);
+
+            refreshTree();
+        }
+
+        // --- TREE LOGIC ---
+        function refreshTree() {
+            treeRoot.innerHTML = '';
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            const body = doc.body;
+            if (body) {
+                for (let child of body.children) {
+                    generateTree(child, treeRoot);
+                }
+            }
+        }
+
+        function generateTree(node, container) {
+            if (node.nodeType !== 1) return;
+            const tag = node.tagName.toLowerCase();
+            if (tag === 'style' || tag === 'script') return;
+
+            const item = document.createElement('div');
+            item.className = 'tree-item';
+            
+            if (!node.hasAttribute('data-dev-id')) {
+                node.setAttribute('data-dev-id', Math.random().toString(36).substr(2, 9));
+            }
+            const devId = node.getAttribute('data-dev-id');
+
+            const row = document.createElement('div');
+            row.className = 'tree-item-row';
+            row.dataset.devId = devId;
+
+            // Toggle Icon
+            const toggle = document.createElement('div');
+            toggle.className = 'toggle-icon';
+            if (node.children.length > 0) {
+                toggle.innerHTML = '<i data-lucide="chevron-right" size="14"></i>';
+                toggle.onclick = (e) => {
+                    e.stopPropagation();
+                    const children = item.querySelector('.tree-children');
+                    const isExpanded = children.classList.toggle('hidden');
+                    toggle.classList.toggle('expanded', !isExpanded);
+                };
+            }
+            row.appendChild(toggle);
+
+            const icon = document.createElement('i');
+            icon.setAttribute('data-lucide', getIconForTag(tag));
+            icon.setAttribute('size', '14');
+            row.appendChild(icon);
+
+            const tagSpan = document.createElement('span');
+            tagSpan.className = 'tree-tag';
+            tagSpan.textContent = tag;
+            row.appendChild(tagSpan);
+
+            if (node.className && typeof node.className === 'string') {
+                const classSpan = document.createElement('span');
+                classSpan.className = 'tree-class';
+                classSpan.textContent = `.${node.className.split(' ').filter(c => c && c !== 'editor-active-selection').join('.')}`;
+                if (classSpan.textContent !== '.') row.appendChild(classSpan);
+            }
+
+            row.onclick = () => handleSelection(node);
+            item.appendChild(row);
+
+            if (node.children.length > 0) {
+                const childrenContainer = document.createElement('div');
+                childrenContainer.className = 'tree-children hidden';
+                childrenContainer.style.marginLeft = '18px';
+                childrenContainer.style.borderLeft = '1px solid var(--color-border-subtle)';
+                item.appendChild(childrenContainer);
+                for (let child of node.children) {
+                    generateTree(child, childrenContainer);
+                }
+            }
+
+            container.appendChild(item);
+            lucide.createIcons({ root: row });
+        }
+
+        // --- ASSETS LOGIC ---
+        function switchTab(tab) {
+            const isTree = tab === 'tree';
+            document.getElementById('tab-tree').classList.toggle('active', isTree);
+            document.getElementById('tab-assets').classList.toggle('active', !isTree);
+            treeRoot.classList.toggle('hidden', !isTree);
+            assetsRoot.classList.toggle('hidden', isTree);
+            if (!isTree) refreshAssets();
+        }
+
+        function refreshAssets() {
+            assetsList.innerHTML = '';
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            
+            // Find all images and links
+            const images = doc.querySelectorAll('img');
+            const links = doc.querySelectorAll('a');
+
+            if (images.length === 0 && links.length === 0) {
+                assetsList.innerHTML = '<div class="empty-state"><p>No assets found.</p></div>';
+                return;
+            }
+
+            images.forEach(img => createAssetCard(img, 'image'));
+            links.forEach(link => createAssetCard(link, 'link'));
+            
+            lucide.createIcons({ root: assetsList });
+        }
+
+        function createAssetCard(el, type) {
+            const card = document.createElement('div');
+            card.className = 'asset-card';
+            
+            const header = document.createElement('div');
+            header.className = 'asset-card-header';
+            header.innerHTML = `<i data-lucide="${type === 'image' ? 'image' : 'link'}" size="12"></i> ${type}`;
+            card.appendChild(header);
+
+            if (type === 'image') {
+                const preview = document.createElement('img');
+                preview.className = 'asset-preview';
+                preview.src = el.src;
+                card.appendChild(preview);
+            }
+
+            const input = document.createElement('input');
+            input.className = 'asset-input';
+            input.type = 'text';
+            input.value = type === 'image' ? el.src : (el.getAttribute('href') || '');
+            input.placeholder = type === 'image' ? 'Image URL' : 'Link URL';
+            
+            input.oninput = () => {
+                if (type === 'image') el.src = input.value;
+                else el.setAttribute('href', input.value);
+                if (type === 'image') card.querySelector('.asset-preview').src = input.value;
+            };
+
+            card.onclick = () => handleSelection(el);
+            card.appendChild(input);
+            assetsList.appendChild(card);
+        }
+
+        function getIconForTag(tag) {
+            switch(tag) {
+                case 'div': case 'section': case 'article': return 'box';
+                case 'h1': case 'h2': case 'h3': case 'h4': case 'h5': case 'h6': return 'heading';
+                case 'p': case 'span': return 'type';
+                case 'a': return 'link';
+                case 'img': return 'image';
+                case 'button': return 'mouse-pointer';
+                case 'ul': case 'ol': return 'list';
+                case 'li': return 'minus';
+                default: return 'code';
+            }
+        }
+
+        function handleSelection(el) {
+            if (selectedEl) selectedEl.classList.remove('editor-active-selection');
+            
+            selectedEl = el;
+            selectedEl.classList.add('editor-active-selection');
+            
+            selectedEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            noSelection.classList.add('hidden');
+            controls.classList.remove('hidden');
+
+            const tag = el.tagName.toLowerCase();
+            tagNameDisp.textContent = tag.toUpperCase();
+
+            fieldHref.classList.toggle('hidden', tag !== 'a');
+            fieldSrc.classList.toggle('hidden', tag !== 'img');
+            
+            const hasText = Array.from(el.childNodes).some(n => n.nodeType === 3 && n.textContent.trim());
+            fieldText.classList.toggle('hidden', tag === 'img' || (tag === 'div' && !hasText && el.children.length > 0));
+
+            if (tag !== 'img') inputText.value = el.innerText || el.textContent;
+            if (tag === 'a') inputHref.value = el.getAttribute('href') || '';
+            if (tag === 'img') inputSrc.value = el.getAttribute('src') || '';
+
+            document.querySelectorAll('.tree-item').forEach(ti => ti.classList.remove('active'));
+            const devId = el.getAttribute('data-dev-id');
+            const treeItem = document.querySelector(`.tree-item[data-dev-id="${devId}"]`);
+            if (treeItem) {
+                treeItem.classList.add('active');
+                treeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        inputText.oninput = () => { if (selectedEl) selectedEl.innerText = inputText.value; };
+        inputHref.oninput = () => { if (selectedEl) selectedEl.setAttribute('href', inputHref.value); };
+        inputSrc.oninput = () => { if (selectedEl) selectedEl.setAttribute('src', inputSrc.value); };
+
+        function applyFormat(command) {
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            doc.execCommand(command, false, null);
+            // Refresh text in sidebar if selected
+            if (selectedEl) {
+                inputText.value = selectedEl.innerText || selectedEl.textContent;
+            }
+        }
+
+        function duplicateElement() {
+            if (!selectedEl) return;
+            selectedEl.classList.remove('editor-active-selection');
+            const clone = selectedEl.cloneNode(true);
+            clone.removeAttribute('data-dev-id');
+            clone.querySelectorAll('[data-dev-id]').forEach(c => c.removeAttribute('data-dev-id'));
+            
+            selectedEl.classList.add('editor-active-selection');
+            selectedEl.parentNode.insertBefore(clone, selectedEl.nextSibling);
+            refreshTree();
+            handleSelection(clone);
+        }
+
+        function deleteElement() {
+            if (!selectedEl) return;
+            if (confirm("Delete this element?")) {
+                selectedEl.remove();
+                selectedEl = null;
+                controls.classList.add('hidden');
+                noSelection.classList.remove('hidden');
+                refreshTree();
+            }
+        }
+
+        function wrapWithLink() {
+            if (!selectedEl) return;
+            if (selectedEl.tagName.toLowerCase() === 'a') return alert("Already a link!");
+
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            const wrapper = doc.createElement('a');
+            wrapper.setAttribute('href', '#');
+            
+            selectedEl.classList.remove('editor-active-selection');
+            selectedEl.parentNode.insertBefore(wrapper, selectedEl);
+            wrapper.appendChild(selectedEl);
+            
+            refreshTree();
+            handleSelection(wrapper);
+        }
+
+        function getCleanHTML() {
+            const doc = iframe.contentDocument || iframe.contentWindow.document;
+            const clone = doc.documentElement.cloneNode(true);
+            
+            clone.querySelectorAll('.editor-active-selection').forEach(el => el.classList.remove('editor-active-selection'));
+            clone.querySelectorAll('[data-dev-id]').forEach(el => el.removeAttribute('data-dev-id'));
+            clone.querySelectorAll('[contenteditable]').forEach(el => el.removeAttribute('contenteditable'));
+            
+            // Remove editor internal styles
+            const internalStyle = clone.querySelector('#editor-internal-styles');
+            if (internalStyle) internalStyle.remove();
+
+            return "<!DOCTYPE html>\n" + clone.outerHTML;
+        }
+
+        function copyHTML() {
+            const html = getCleanHTML();
+            navigator.clipboard.writeText(html).then(() => {
+                const btn = document.getElementById('btn-copy');
+                const oldContent = btn.innerHTML;
+                btn.innerHTML = '<i data-lucide="check" size="18"></i> Copied!';
+                btn.style.borderColor = "#22C55E";
+                btn.style.color = "#22C55E";
+                lucide.createIcons({ root: btn });
+                setTimeout(() => {
+                    btn.innerHTML = oldContent;
+                    btn.style.borderColor = "var(--color-border)";
+                    btn.style.color = "var(--color-text-primary)";
+                    lucide.createIcons({ root: btn });
+                }, 2000);
+            }).catch(err => {
+                alert("Failed to copy: " + err);
+            });
+        }
+
+        function exportHTML() {
+            const finalHTML = getCleanHTML();
+            const blob = new Blob([finalHTML], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = "edited-page.html";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
