@@ -9,7 +9,7 @@
     })();
     
     // Fallback to your confirmed domain if detection fails
-    const scriptSrc = currentScript ? currentScript.src : 'https://image.theonesolution.co.in/editor.js';
+    const scriptSrc = currentScript ? currentScript.src : 'https://yourdomain.com/editor.js';
     const basePath = scriptSrc.substring(0, scriptSrc.lastIndexOf('/') + 1);
     
     // Default to index.html at the same location as the script
